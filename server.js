@@ -247,7 +247,9 @@ app.get('/admin', requireAdmin, (req, res) => {
         ORDER BY o.created_at DESC
     `).all();
     const users = db.prepare('SELECT id, username, email, role, created_at FROM users ORDER BY id DESC').all();
-    res.render('admin', { tab, products, orders, users });
+    const wallets = db.prepare('SELECT * FROM crypto_wallets ORDER BY id DESC').all();
+    const cryptoOrders = db.prepare('SELECT * FROM crypto_orders ORDER BY created_at DESC').all();
+    res.render('admin', { tab, products, orders, users, wallets, cryptoOrders });
 });
 app.post('/admin/products/add', requireAdmin, (req, res) => {
     const { name, description, price, stock, category, image } = req.body;
@@ -267,4 +269,53 @@ app.post('/admin/orders/status', requireAdmin, (req, res) => {
     db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(req.body.status, req.body.id);
     res.redirect('/admin?tab=orders');
 });
+
+// ===== 钱包管理 =====
+app.post('/admin/wallets/add', requireAdmin, (req, res) => {
+    const { chain, symbol, address, label } = req.body;
+    db.prepare('INSERT INTO crypto_wallets (chain, symbol, address, label) VALUES (?, ?, ?, ?)').run(chain, symbol, address, label || null);
+    res.redirect('/admin?tab=payment');
+});
+app.post('/admin/wallets/toggle', requireAdmin, (req, res) => {
+    const w = db.prepare('SELECT enabled FROM crypto_wallets WHERE id = ?').get(req.body.id);
+    db.prepare('UPDATE crypto_wallets SET enabled = ? WHERE id = ?').run(w.enabled ? 0 : 1, req.body.id);
+    res.redirect('/admin?tab=payment');
+});
+app.post('/admin/wallets/delete', requireAdmin, (req, res) => {
+    db.prepare('DELETE FROM crypto_wallets WHERE id = ?').run(req.body.id);
+    res.redirect('/admin?tab=payment');
+});
+
+// ===== 确认收款 =====
+app.post('/admin/crypto/confirm', requireAdmin, (req, res) => {
+    const { crypto_order_id, tx_hash } = req.body;
+    const co = db.prepare('SELECT * FROM crypto_orders WHERE id = ?').get(crypto_order_id);
+    if (co) {
+        db.prepare('UPDATE crypto_orders SET status = ?, tx_hash = ? WHERE id = ?').run('paid', tx_hash || null, crypto_order_id);
+        db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('completed', co.order_id);
+    }
+    res.redirect('/admin?tab=payment');
+});
+
+// ===== 支付 API =====
+app.post('/api/crypto/pay', requireLogin, (req, res) => {
+    const { order_id, chain, symbol } = req.body;
+    const order = db.prepare('SELECT * FROM orders WHERE id = ? AND user_id = ?').get(order_id, req.session.user.id);
+    if (!order) return res.status(404).json({ error: '订单不存在' });
+    const wallet = db.prepare('SELECT * FROM crypto_wallets WHERE chain = ? AND symbol = ? AND enabled = 1').get(chain, symbol);
+    if (!wallet) return res.status(400).json({ error: '该链暂不支持，请选择其他' });
+    const amount_crypto = parseFloat(order.total.toFixed(2)); // USDT 1:1
+    const expires_at = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    const result = db.prepare(
+        'INSERT INTO crypto_orders (order_id, chain, symbol, wallet_address, amount_usd, amount_crypto, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(order_id, chain, symbol, wallet.address, order.total, amount_crypto, expires_at);
+    res.json({ id: result.lastInsertRowid, wallet_address: wallet.address, amount_crypto, amount_usd: order.total, chain, symbol, expires_at });
+});
+
+app.get('/api/crypto/status/:order_id', requireLogin, (req, res) => {
+    const co = db.prepare('SELECT * FROM crypto_orders WHERE order_id = ? ORDER BY id DESC LIMIT 1').get(req.params.order_id);
+    if (!co) return res.json({ status: 'none' });
+    res.json({ status: co.status, tx_hash: co.tx_hash, amount_crypto: co.amount_crypto, wallet_address: co.wallet_address, chain: co.chain, symbol: co.symbol });
+});
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
