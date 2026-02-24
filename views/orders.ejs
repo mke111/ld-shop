@@ -14,13 +14,29 @@
     <div class="empty">暂无订单，<a href="/">去购物</a></div>
   <% } else { %>
   <table class="cart-table">
-    <thead><tr><th>订单号</th><th>金额</th><th>状态</th><th>联系方式</th><th>时间</th></tr></thead>
+    <thead><tr><th>订单号</th><th>金额</th><th>状态</th><th>发货内容</th><th>联系方式</th><th>时间</th></tr></thead>
     <tbody>
     <% orders.forEach(o => { %>
     <tr>
       <td>#<%= o.id %></td>
-      <td>¥<%= o.total.toFixed(2) %></td>
+      <td>$<%= o.total.toFixed(2) %></td>
       <td><span class="status-<%= o.status %>"><%= {pending:'待处理',processing:'处理中',completed:'已完成',cancelled:'已取消'}[o.status] || o.status %></span></td>
+      <td>
+        <% if(o.delivery_result) { %>
+          <% JSON.parse(o.delivery_result).forEach(d => { %>
+            <div style="margin-bottom:4px">
+              <b><%= d.name %>：</b>
+              <% if(d.type === 'link') { %>
+                <a href="<%= d.content %>" target="_blank">点击获取</a>
+              <% } else { %>
+                <code style="background:#f5f5f5;padding:2px 6px;border-radius:3px"><%= d.content %></code>
+              <% } %>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <span style="color:#999">待发货</span>
+        <% } %>
+      </td>
       <td><%= o.contact %></td>
       <td><%= o.created_at %></td>
     </tr>

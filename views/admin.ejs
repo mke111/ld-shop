@@ -15,6 +15,7 @@
     <a href="/admin?tab=orders" class="<%= tab==='orders' ? 'active' : '' %>">订单管理</a>
     <a href="/admin?tab=users" class="<%= tab==='users' ? 'active' : '' %>">用户管理</a>
     <a href="/admin?tab=payment" class="<%= tab==='payment' ? 'active' : '' %>">支付设置</a>
+    <a href="/admin?tab=cards" class="<%= tab==='cards' ? 'active' : '' %>">卡密管理</a>
     <a href="/admin?tab=site" class="<%= tab==='site' ? 'active' : '' %>">网站设置</a>
   </div>
 
@@ -28,6 +29,12 @@
       <input type="number" name="stock" placeholder="库存" required>
       <textarea name="description" placeholder="商品描述"></textarea>
       <input type="text" name="image" placeholder="图片URL（可选）">
+      <select name="delivery_type">
+        <option value="manual">手动发货</option>
+        <option value="card">卡密自动发货</option>
+        <option value="link">链接自动发货</option>
+      </select>
+      <input type="text" name="delivery_content" placeholder="发货链接（链接类型填写）">
       <button type="submit" class="btn-buy">添加</button>
     </form>
     <h3>商品列表</h3>
@@ -175,6 +182,34 @@
           <span><%= co.status === 'paid' ? '✅已收款' : co.status %></span>
           <% } %>
         </td>
+      </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } else if(tab === 'cards') { %>
+  <div class="admin-section">
+    <h3>批量导入卡密</h3>
+    <form method="post" action="/admin/cards/import" class="admin-form">
+      <select name="product_id" required>
+        <option value="">选择商品</option>
+        <% products.forEach(p => { %>
+        <option value="<%= p.id %>"><%= p.name %></option>
+        <% }) %>
+      </select>
+      <textarea name="cards" rows="8" placeholder="每行一条卡密，批量粘贴" required></textarea>
+      <button type="submit" class="btn-buy">批量导入</button>
+    </form>
+    <h3>卡密库存统计</h3>
+    <table class="cart-table">
+      <thead><tr><th>商品</th><th>总数</th><th>已用</th><th>剩余</th></tr></thead>
+      <tbody>
+      <% cardStats.forEach(s => { %>
+      <tr>
+        <td><%= s.name %></td>
+        <td><%= s.total %></td>
+        <td><%= s.used %></td>
+        <td><%= s.remaining %></td>
       </tr>
       <% }) %>
       </tbody>

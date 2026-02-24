@@ -86,8 +86,21 @@ db.exec(`
         key TEXT PRIMARY KEY,
         value TEXT
     );
+    CREATE TABLE IF NOT EXISTS card_keys (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        used INTEGER DEFAULT 0,
+        order_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(product_id) REFERENCES products(id)
+    );
 `);
 
+// 动态加字段（兼容旧数据库）
+try { db.exec('ALTER TABLE products ADD COLUMN delivery_type TEXT DEFAULT "manual"'); } catch(e) {}
+try { db.exec('ALTER TABLE products ADD COLUMN delivery_content TEXT'); } catch(e) {}
+try { db.exec('ALTER TABLE orders ADD COLUMN delivery_result TEXT'); } catch(e) {}
 // 默认网站设置
 const defaultSettings = {
     site_name: '零度小铺',
@@ -273,11 +286,20 @@ app.get('/admin', requireAdmin, (req, res) => {
     const users = db.prepare('SELECT id, username, email, role, created_at FROM users ORDER BY id DESC').all();
     const wallets = db.prepare('SELECT * FROM crypto_wallets ORDER BY id DESC').all();
     const cryptoOrders = db.prepare('SELECT * FROM crypto_orders ORDER BY created_at DESC').all();
-    res.render('admin', { tab, products, orders, users, wallets, cryptoOrders });
+    const cardStats = db.prepare(`
+        SELECT p.id, p.name,
+            COUNT(c.id) as total,
+            COALESCE(SUM(c.used),0) as used,
+            COUNT(c.id) - COALESCE(SUM(c.used),0) as remaining
+        FROM products p
+        LEFT JOIN card_keys c ON p.id = c.product_id
+        GROUP BY p.id
+    `).all();
+    res.render('admin', { tab, products, orders, users, wallets, cryptoOrders, cardStats });
 });
 app.post('/admin/products/add', requireAdmin, (req, res) => {
-    const { name, description, price, stock, category, image } = req.body;
-    db.prepare('INSERT INTO products (name, description, price, stock, category, image) VALUES (?, ?, ?, ?, ?, ?)').run(name, description, parseFloat(price), parseInt(stock), category, image || null);
+    const { name, description, price, stock, category, image, delivery_type, delivery_content } = req.body;
+    db.prepare('INSERT INTO products (name, description, price, stock, category, image, delivery_type, delivery_content) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(name, description, parseFloat(price), parseInt(stock), category, image || null, delivery_type || 'manual', delivery_content || null);
     res.redirect('/admin');
 });
 app.post('/admin/products/toggle', requireAdmin, (req, res) => {
@@ -317,8 +339,49 @@ app.post('/admin/crypto/confirm', requireAdmin, (req, res) => {
     if (co) {
         db.prepare('UPDATE crypto_orders SET status = ?, tx_hash = ? WHERE id = ?').run('paid', tx_hash || null, crypto_order_id);
         db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('completed', co.order_id);
+        // 自动发货
+        const items = db.prepare('SELECT oi.*, p.delivery_type, p.delivery_content, p.name FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?').all(co.order_id);
+        const result = [];
+        items.forEach(item => {
+            if (item.delivery_type === 'card') {
+                const card = db.prepare('SELECT * FROM card_keys WHERE product_id = ? AND used = 0 LIMIT 1').get(item.product_id);
+                if (card) {
+                    db.prepare('UPDATE card_keys SET used = 1, order_id = ? WHERE id = ?').run(co.order_id, card.id);
+                    result.push({ name: item.name, type: 'card', content: card.content });
+                } else {
+                    result.push({ name: item.name, type: 'card', content: '卡密已售罄，请联系客服' });
+                }
+            } else if (item.delivery_type === 'link') {
+                result.push({ name: item.name, type: 'link', content: item.delivery_content });
+            }
+        });
+        if (result.length > 0) {
+            db.prepare('UPDATE orders SET delivery_result = ? WHERE id = ?').run(JSON.stringify(result), co.order_id);
+        }
     }
     res.redirect('/admin?tab=payment');
+});
+
+// ===== 卡密管理 =====
+app.post('/admin/cards/import', requireAdmin, (req, res) => {
+    const { product_id, cards } = req.body;
+    const lines = cards.split('\n').map(l => l.trim()).filter(l => l);
+    const insert = db.prepare('INSERT INTO card_keys (product_id, content) VALUES (?, ?)');
+    lines.forEach(line => insert.run(product_id, line));
+    res.redirect('/admin?tab=cards');
+});
+
+app.get('/admin/cards/stats', requireAdmin, (req, res) => {
+    const stats = db.prepare(`
+        SELECT p.id, p.name,
+            COUNT(c.id) as total,
+            SUM(c.used) as used,
+            COUNT(c.id) - SUM(c.used) as remaining
+        FROM products p
+        LEFT JOIN card_keys c ON p.id = c.product_id
+        GROUP BY p.id
+    `).all();
+    res.json(stats);
 });
 
 // ===== 支付 API =====
