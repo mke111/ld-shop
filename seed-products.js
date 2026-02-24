@@ -41,8 +41,13 @@ const products = [
 
 const insert = db.prepare('INSERT INTO products (name, description, price, stock, category, delivery_type, delivery_content) VALUES (?, ?, ?, ?, ?, ?, ?)');
 products.forEach(p => {
-    insert.run(p.name, p.description, p.price, p.stock, p.category, p.delivery_type, p.delivery_content);
-    console.log(`✓ 上架：${p.name}`);
+    const exists = db.prepare('SELECT id FROM products WHERE name = ?').get(p.name);
+    if (!exists) {
+        insert.run(p.name, p.description, p.price, p.stock, p.category, p.delivery_type, p.delivery_content);
+        console.log(`✓ 上架：${p.name}`);
+    } else {
+        console.log(`- 已存在：${p.name}`);
+    }
 });
 
 console.log('完成');
