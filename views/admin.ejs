@@ -15,6 +15,7 @@
     <a href="/admin?tab=orders" class="<%= tab==='orders' ? 'active' : '' %>">订单管理</a>
     <a href="/admin?tab=users" class="<%= tab==='users' ? 'active' : '' %>">用户管理</a>
     <a href="/admin?tab=payment" class="<%= tab==='payment' ? 'active' : '' %>">支付设置</a>
+    <a href="/admin?tab=site" class="<%= tab==='site' ? 'active' : '' %>">网站设置</a>
   </div>
 
   <% if(tab === 'products') { %>
@@ -178,6 +179,27 @@
       <% }) %>
       </tbody>
     </table>
+  </div>
+  <% } else if(tab === 'site') { %>
+  <div class="admin-section">
+    <h3>网站设置</h3>
+    <form method="post" action="/admin/site/save" class="admin-form">
+      <label>网站名称</label>
+      <input type="text" name="site_name" value="<%= settings.site_name %>" required>
+      <label>网站标语</label>
+      <input type="text" name="site_slogan" value="<%= settings.site_slogan %>">
+      <label>底部声明</label>
+      <input type="text" name="footer_notice" value="<%= settings.footer_notice %>">
+      <label>退款政策</label>
+      <input type="text" name="refund_policy" value="<%= settings.refund_policy %>">
+      <label>Telegram 客服（如 @xman）</label>
+      <input type="text" name="contact_telegram" value="<%= settings.contact_telegram %>">
+      <label>工作时间</label>
+      <input type="text" name="contact_hours" value="<%= settings.contact_hours %>">
+      <label>版权信息</label>
+      <input type="text" name="copyright" value="<%= settings.copyright %>">
+      <button type="submit" class="btn-buy">保存</button>
+    </form>
   </div>
   <% } %>
 </div>

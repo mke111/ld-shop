@@ -1,8 +1,8 @@
 <footer>
   <div class="footer-inner">
-    <p>本站所有商品仅供娱乐和学习，请勿用于非法用途</p>
-    <p>【退款政策】若产品未使用有任何问题我们会全额退款</p>
-    <p>Telegram客服：<a href="https://t.me/xman" target="_blank">@xman</a>（工作时间 9:00-2:00）</p>
-    <p>© 2024 零度小铺 - 专注海外社交账户</p>
+    <p><%= settings.footer_notice %></p>
+    <p>【退款政策】<%= settings.refund_policy %></p>
+    <p>Telegram客服：<a href="https://t.me/<%= settings.contact_telegram.replace('@','') %>" target="_blank"><%= settings.contact_telegram %></a>（工作时间 <%= settings.contact_hours %>）</p>
+    <p><%= settings.copyright %> - <%= settings.site_slogan %></p>
   </div>
 </footer>

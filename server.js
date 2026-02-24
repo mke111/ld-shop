@@ -82,7 +82,30 @@ db.exec(`
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(order_id) REFERENCES orders(id)
     );
+    CREATE TABLE IF NOT EXISTS site_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    );
 `);
+
+// 默认网站设置
+const defaultSettings = {
+    site_name: '零度小铺',
+    site_slogan: '专注海外社交账户',
+    footer_notice: '本站所有商品仅供娱乐和学习，请勿用于非法用途',
+    refund_policy: '若产品未使用有任何问题我们会全额退款',
+    contact_telegram: '@xman',
+    contact_hours: '9:00-2:00',
+    copyright: '© 2024 零度小铺'
+};
+const insertSetting = db.prepare('INSERT OR IGNORE INTO site_settings (key, value) VALUES (?, ?)');
+Object.entries(defaultSettings).forEach(([k, v]) => insertSetting.run(k, v));
+
+function getSettings() {
+    const rows = db.prepare('SELECT key, value FROM site_settings').all();
+    return Object.fromEntries(rows.map(r => [r.key, r.value]));
+}
+
 // Seed admin
 const admin = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
 if (!admin) {
@@ -131,6 +154,7 @@ app.use((req, res, next) => {
     res.locals.user = req.session.user || null;
     res.locals.cart = req.session.cart || [];
     res.locals.cartCount = (req.session.cart || []).reduce((s, i) => s + i.qty, 0);
+    res.locals.settings = getSettings();
     next();
 });
 // ===== ROUTES =====
@@ -316,6 +340,14 @@ app.get('/api/crypto/status/:order_id', requireLogin, (req, res) => {
     const co = db.prepare('SELECT * FROM crypto_orders WHERE order_id = ? ORDER BY id DESC LIMIT 1').get(req.params.order_id);
     if (!co) return res.json({ status: 'none' });
     res.json({ status: co.status, tx_hash: co.tx_hash, amount_crypto: co.amount_crypto, wallet_address: co.wallet_address, chain: co.chain, symbol: co.symbol });
+});
+
+// ===== 网站设置 =====
+app.post('/admin/site/save', requireAdmin, (req, res) => {
+    const fields = ['site_name','site_slogan','footer_notice','refund_policy','contact_telegram','contact_hours','copyright'];
+    const update = db.prepare('INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)');
+    fields.forEach(k => { if (req.body[k] !== undefined) update.run(k, req.body[k]); });
+    res.redirect('/admin?tab=site');
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
