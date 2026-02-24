@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>我的订单 - 零度小铺</title>
 <link rel="stylesheet" href="/css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 <%- include('partials/header') %>
@@ -27,7 +28,7 @@
             <div style="margin-bottom:4px">
               <b><%= d.name %>：</b>
               <% if(d.type === 'link') { %>
-                <a href="<%= d.content %>" target="_blank">点击获取</a>
+                <div class="delivery-content" data-content="<%= encodeURIComponent(d.content) %>"></div>
               <% } else { %>
                 <code style="background:#f5f5f5;padding:2px 6px;border-radius:3px"><%= d.content %></code>
               <% } %>
@@ -46,5 +47,10 @@
   <% } %>
 </div>
 <%- include('partials/footer') %>
+<script>
+document.querySelectorAll('.delivery-content').forEach(el => {
+    el.innerHTML = marked.parse(decodeURIComponent(el.dataset.content));
+});
+</script>
 </body>
 </html>
