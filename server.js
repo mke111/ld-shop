@@ -56,7 +56,7 @@ db.exec(`
 // Seed admin
 const admin = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
 if (!admin) {
-  const hash = bcrypt.hashSync('admin123', 10);
+  const hash = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin123', 10);
   db.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)').run('admin', hash, 'admin');
 }
 
