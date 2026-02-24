@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>后台管理 - 零度小铺</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<%- include('partials/header') %>
+<div class="container">
+  <h2>后台管理</h2>
+  <div class="admin-tabs">
+    <a href="/admin" class="<%= tab==='products' ? 'active' : '' %>">商品管理</a>
+    <a href="/admin?tab=orders" class="<%= tab==='orders' ? 'active' : '' %>">订单管理</a>
+    <a href="/admin?tab=users" class="<%= tab==='users' ? 'active' : '' %>">用户管理</a>
+  </div>
+
+  <% if(tab === 'products') { %>
+  <div class="admin-section">
+    <h3>添加商品</h3>
+    <form method="post" action="/admin/products/add" class="admin-form">
+      <input type="text" name="name" placeholder="商品名称" required>
+      <input type="text" name="category" placeholder="分类（Twitter/Instagram等）" required>
+      <input type="number" name="price" placeholder="价格" step="0.01" required>
+      <input type="number" name="stock" placeholder="库存" required>
+      <textarea name="description" placeholder="商品描述"></textarea>
+      <input type="text" name="image" placeholder="图片URL（可选）">
+      <button type="submit" class="btn-buy">添加</button>
+    </form>
+    <h3>商品列表</h3>
+    <table class="cart-table">
+      <thead><tr><th>ID</th><th>名称</th><th>分类</th><th>价格</th><th>库存</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>
+      <% products.forEach(p => { %>
+      <tr>
+        <td><%= p.id %></td>
+        <td><%= p.name %></td>
+        <td><%= p.category %></td>
+        <td>¥<%= p.price.toFixed(2) %></td>
+        <td><%= p.stock %></td>
+        <td><%= p.status ? '上架' : '下架' %></td>
+        <td>
+          <form method="post" action="/admin/products/toggle" style="display:inline">
+            <input type="hidden" name="id" value="<%= p.id %>">
+            <button type="submit" class="btn-sm"><%= p.status ? '下架' : '上架' %></button>
+          </form>
+          <form method="post" action="/admin/products/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
+            <input type="hidden" name="id" value="<%= p.id %>">
+            <button type="submit" class="btn-del">删除</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } else if(tab === 'orders') { %>
+  <div class="admin-section">
+    <h3>订单列表</h3>
+    <table class="cart-table">
+      <thead><tr><th>ID</th><th>用户</th><th>金额</th><th>状态</th><th>联系</th><th>时间</th><th>操作</th></tr></thead>
+      <tbody>
+      <% orders.forEach(o => { %>
+      <tr>
+        <td>#<%= o.id %></td>
+        <td><%= o.username %></td>
+        <td>¥<%= o.total.toFixed(2) %></td>
+        <td><span class="status-<%= o.status %>"><%= {pending:'待处理',processing:'处理中',completed:'已完成',cancelled:'已取消'}[o.status] || o.status %></span></td>
+        <td><%= o.contact %></td>
+        <td><%= o.created_at %></td>
+        <td>
+          <form method="post" action="/admin/orders/status" style="display:inline">
+            <input type="hidden" name="id" value="<%= o.id %>">
+            <select name="status" onchange="this.form.submit()">
+              <option value="pending" <%= o.status==='pending'?'selected':'' %>>待处理</option>
+              <option value="processing" <%= o.status==='processing'?'selected':'' %>>处理中</option>
+              <option value="completed" <%= o.status==='completed'?'selected':'' %>>已完成</option>
+              <option value="cancelled" <%= o.status==='cancelled'?'selected':'' %>>已取消</option>
+            </select>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } else if(tab === 'users') { %>
+  <div class="admin-section">
+    <h3>用户列表</h3>
+    <table class="cart-table">
+      <thead><tr><th>ID</th><th>用户名</th><th>邮箱</th><th>角色</th><th>注册时间</th></tr></thead>
+      <tbody>
+      <% users.forEach(u => { %>
+      <tr>
+        <td><%= u.id %></td>
+        <td><%= u.username %></td>
+        <td><%= u.email || '-' %></td>
+        <td><%= u.role %></td>
+        <td><%= u.created_at %></td>
+      </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</div>
+<%- include('partials/footer') %>
+</body>
+</html>

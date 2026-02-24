@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>零度小铺 - 专注海外社交账户</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<%- include('partials/header') %>
+<div class="container">
+  <div class="notice">本站所有商品仅供娱乐和学习，请勿用于非法用途，由此引起的一切后果与本站无关！</div>
+  
+  <div class="filter-bar">
+    <form method="get" action="/">
+      <div class="cats">
+        <a href="/" class="<%= cat==='' ? 'active' : '' %>">全部</a>
+        <% categories.forEach(c => { %>
+          <a href="/?cat=<%= c %>" class="<%= cat===c ? 'active' : '' %>"><%= c %></a>
+        <% }) %>
+      </div>
+      <div class="search-box">
+        <input type="text" name="q" value="<%= q %>" placeholder="搜索商品...">
+        <button type="submit">搜索</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="products-grid">
+    <% products.forEach(p => { %>
+    <div class="product-card">
+      <div class="product-img">
+        <% if(p.image) { %><img src="<%= p.image %>" alt="<%= p.name %>"><% } else { %>
+        <div class="no-img"><%= p.category %></div><% } %>
+      </div>
+      <div class="product-info">
+        <div class="product-cat"><%= p.category %></div>
+        <h3><a href="/product/<%= p.id %>"><%= p.name %></a></h3>
+        <p class="desc"><%= p.description %></p>
+        <div class="product-footer">
+          <span class="price">¥<%= p.price.toFixed(2) %></span>
+          <span class="stock">库存: <%= p.stock %></span>
+        </div>
+        <button class="btn-add" onclick="addCart(<%= p.id %>)">加入购物车</button>
+      </div>
+    </div>
+    <% }) %>
+    <% if(products.length === 0) { %>
+    <div class="empty">暂无商品</div>
+    <% } %>
+  </div>
+</div>
+<%- include('partials/footer') %>
+<script src="/js/main.js"></script>
+</body>
+</html>

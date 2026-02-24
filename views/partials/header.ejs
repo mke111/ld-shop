@@ -1,0 +1,17 @@
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo">零度小铺 🛒</a>
+    <nav>
+      <a href="/">首页</a>
+      <% if(user) { %>
+        <a href="/orders">我的订单</a>
+        <% if(user.role === 'admin') { %><a href="/admin">后台管理</a><% } %>
+        <a href="/logout">退出</a>
+      <% } else { %>
+        <a href="/login">登录</a>
+        <a href="/register">注册</a>
+      <% } %>
+      <a href="/cart" class="cart-link">购物车 <span class="cart-count"><%= cartCount %></span></a>
+    </nav>
+  </div>
+</header>

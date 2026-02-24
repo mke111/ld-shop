@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>购物车 - 零度小铺</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<%- include('partials/header') %>
+<div class="container">
+  <h2>购物车</h2>
+  <% if(cart.length === 0) { %>
+    <div class="empty">购物车是空的，<a href="/">去逛逛</a></div>
+  <% } else { %>
+  <table class="cart-table">
+    <thead><tr><th>商品</th><th>单价</th><th>数量</th><th>小计</th><th>操作</th></tr></thead>
+    <tbody>
+    <% cart.forEach(item => { %>
+    <tr>
+      <td><%= item.name %></td>
+      <td>¥<%= item.price.toFixed(2) %></td>
+      <td><%= item.qty %></td>
+      <td>¥<%= (item.price * item.qty).toFixed(2) %></td>
+      <td>
+        <form method="post" action="/cart/remove" style="display:inline">
+          <input type="hidden" name="product_id" value="<%= item.id %>">
+          <button type="submit" class="btn-del">删除</button>
+        </form>
+      </td>
+    </tr>
+    <% }) %>
+    </tbody>
+  </table>
+  <div class="cart-total">合计：<span class="price-lg">¥<%= total.toFixed(2) %></span></div>
+  <a href="/checkout" class="btn-buy">去结算</a>
+  <% } %>
+</div>
+<%- include('partials/footer') %>
+<script src="/js/main.js"></script>
+</body>
+</html>

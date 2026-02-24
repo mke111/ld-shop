@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= product.name %> - 零度小铺</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<%- include('partials/header') %>
+<div class="container">
+  <div class="breadcrumb"><a href="/">首页</a> &gt; <%= product.category %> &gt; <%= product.name %></div>
+  <div class="product-detail">
+    <div class="product-detail-img">
+      <% if(product.image) { %><img src="<%= product.image %>" alt="<%= product.name %>">
+      <% } else { %><div class="no-img-lg"><%= product.category %></div><% } %>
+    </div>
+    <div class="product-detail-info">
+      <span class="badge"><%= product.category %></span>
+      <h1><%= product.name %></h1>
+      <p class="detail-desc"><%= product.description %></p>
+      <div class="price-row">
+        <span class="price-lg">¥<%= product.price.toFixed(2) %></span>
+        <span class="stock-info">库存: <%= product.stock %></span>
+      </div>
+      <div class="qty-row">
+        <label>数量：</label>
+        <input type="number" id="qty" value="1" min="1" max="<%= product.stock %>">
+      </div>
+      <button class="btn-buy" onclick="addCart(<%= product.id %>, document.getElementById('qty').value)">加入购物车</button>
+      <a href="/cart" class="btn-cart">直接购买</a>
+    </div>
+  </div>
+</div>
+<%- include('partials/footer') %>
+<script src="/js/main.js"></script>
+</body>
+</html>
