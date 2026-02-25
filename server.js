@@ -413,4 +413,22 @@ app.post('/admin/site/save', requireAdmin, (req, res) => {
     res.redirect('/admin?tab=site');
 });
 
+// 知识包下载路由（token验证）
+const fs = require('fs');
+const path = require('path');
+app.get('/download/:token', requireLogin, (req, res) => {
+    const { token } = req.params;
+    const card = db.prepare('SELECT * FROM card_keys WHERE content LIKE ? AND used=1').get(`%/download/${token}`);
+    if (!card) return res.status(403).send('无效或未购买的下载链接');
+    // 从token映射到文件
+    const tokenMap = db.prepare('SELECT value FROM site_settings WHERE key=?').get(`dl_token_${token}`);
+    if (!tokenMap) return res.status(404).send('文件不存在');
+    const filePath = path.join(__dirname, 'packages', tokenMap.value);
+    if (!fs.existsSync(filePath)) return res.status(404).send('文件不存在');
+    const content = fs.readFileSync(filePath, 'utf8');
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${tokenMap.value}"`);
+    res.send(content);
+});
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
